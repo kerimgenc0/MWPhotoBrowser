@@ -89,10 +89,12 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
                                                  name:MWPHOTO_LOADING_DID_END_NOTIFICATION
                                                object:nil];
     
+    
 }
 
 - (void)dealloc {
     [self clearCurrentVideo];
+    [_pagingScrollView removeObserver:self forKeyPath:@"contentOffset"];
     _pagingScrollView.delegate = nil;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [self releaseAllUnderlyingPhotos:NO];
@@ -192,6 +194,8 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     
 	// Super
     [super viewDidLoad];
+    
+    [_pagingScrollView addObserver:self forKeyPath:@"contentOffset" options:NSKeyValueObservingOptionNew context:nil];
 	
 }
 
@@ -1664,6 +1668,16 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         [self.progressHUD hide:YES];
     }
     self.navigationController.navigationBar.userInteractionEnabled = YES;
+}
+
+-(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
+    if([object isKindOfClass:[UIScrollView class]]) {
+        UIScrollView *scrollView = (UIScrollView *)object;
+        if(!scrollView.isDragging && scrollView.isDecelerating && !scrollView.isTracking) {
+            CGRect pageFrame = [self frameForPageAtIndex:_currentPageIndex];
+            [_pagingScrollView setContentOffset:CGPointMake(pageFrame.origin.x - PADDING, 0) animated:YES];
+        }
+    }
 }
 
 @end
