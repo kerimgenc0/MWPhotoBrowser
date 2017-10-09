@@ -277,7 +277,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     // Toolbar visibility
     [_toolbar setItems:items];
     BOOL hideToolbar = YES;
-    for (UIBarButtonItem* item in _toolbar.items) {
+    for (UIBarButtonItem* item in items) {
         if (item != fixedSpace && item != flexSpace) {
             hideToolbar = NO;
             break;
