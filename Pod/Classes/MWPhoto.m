@@ -18,12 +18,14 @@
     id <SDWebImageOperation> _webImageOperation;
     PHImageRequestID _assetRequestID;
     PHImageRequestID _assetVideoRequestID;
+    id <SDWebImageOperation> _placeholderWebImageOperation;
         
 }
 
 @property (nonatomic, strong) UIImage *image;
 @property (nonatomic, strong) UIImage *placeholder;
 @property (nonatomic, strong) NSURL *photoURL;
+@property (nonatomic, strong) NSURL *placeholderURL;
 @property (nonatomic, strong) PHAsset *asset;
 @property (nonatomic) CGSize assetTargetSize;
 
@@ -55,6 +57,10 @@
 
 + (MWPhoto *)videoWithURL:(NSURL *)url {
     return [[MWPhoto alloc] initWithVideoURL:url];
+}
+
++ (MWPhoto *)photoWithURL:(NSURL *)url placeholderURL:(NSURL *)placeholderURL {
+    return [[MWPhoto alloc] initWithURL:url placeholderURL:placeholderURL];
 }
 
 #pragma mark - Init
@@ -106,6 +112,13 @@
         self.isVideo = YES;
         self.emptyImage = YES;
         [self setup];
+    }
+    return self;
+}
+
+- (id)initWithURL:(NSURL *)url placeholderURL:(NSURL *)placeholderURL {
+    if(self = [self initWithURL:url]) {
+        _placeholderURL = placeholderURL;
     }
     return self;
 }
@@ -207,7 +220,7 @@
         } else {
             
             // Load async from web (using SDWebImage)
-            [self _performLoadUnderlyingImageAndNotifyWithWebURL: _photoURL];
+            [self _performLoadUnderlyingImageAndNotifyWithWebURL: _photoURL placeholderURL:_placeholderURL];
             
         }
         
@@ -225,7 +238,7 @@
 }
 
 // Load from local file
-- (void)_performLoadUnderlyingImageAndNotifyWithWebURL:(NSURL *)url {
+- (void)_performLoadUnderlyingImageAndNotifyWithWebURL:(NSURL *)url placeholderURL:(NSURL *)placeholderURL {
     @try {
         SDWebImageManager *manager = [SDWebImageManager sharedManager];
         _webImageOperation = [manager loadImageWithURL:url options:0 progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
@@ -240,6 +253,8 @@
             if (error) {
                 MWLog(@"SDWebImage failed to download image: %@", error);
             }
+            [_placeholderWebImageOperation cancel];
+            _placeholderWebImageOperation = nil;
             _webImageOperation = nil;
             self.underlyingImage = image;
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -247,9 +262,34 @@
             });
         }];
         
+        if(placeholderURL != nil) {
+            _placeholderWebImageOperation = [manager loadImageWithURL:placeholderURL options:0 progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
+                if(expectedSize > 0) {
+                    float progress = receivedSize / (float)expectedSize;
+                    NSDictionary* dict = [NSDictionary dictionaryWithObjectsAndKeys:
+                                          [NSNumber numberWithFloat:progress], @"progress",
+                                          self, @"photo", nil];
+                    [[NSNotificationCenter defaultCenter] postNotificationName:MWPHOTO_PLACEHOLDER_PROGRESS_NOTIFICATION object:dict];
+                }
+            } completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, SDImageCacheType cacheType, BOOL finished, NSURL * _Nullable imageURL) {
+                if(error) {
+                    MWLog(@"SDWebImage failed to download placeholder image: %@", error);
+                }
+                _placeholderWebImageOperation = nil;
+                self.underlyingImage = image;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self imagePlaceholderComplete];
+                });
+            }];
+        }
+        
     } @catch (NSException *e) {
         MWLog(@"Photo from web: %@", e);
         _webImageOperation = nil;
+        if(_placeholderWebImageOperation != nil) {
+            [_placeholderWebImageOperation cancel];
+            _placeholderWebImageOperation = nil;
+        }
         [self imageLoadingComplete];
     }
 }
@@ -353,6 +393,10 @@
     if (_webImageOperation != nil) {
         [_webImageOperation cancel];
         _loadingInProgress = NO;
+    }
+    if(_placeholderWebImageOperation != nil) {
+        [_placeholderWebImageOperation cancel];
+        _placeholderWebImageOperation = nil;
     }
     [self cancelImageRequest];
     [self cancelVideoRequest];
