@@ -360,7 +360,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     if (!_viewIsActive && [self.navigationController.viewControllers objectAtIndex:0] != self) {
         [self storePreviousNavBarAppearance];
     }
-    [self setNavBarAppearance:animated];
+    if(self.parentViewController == nil) {
+        [self setNavBarAppearance:animated];
+    }
     
     // Update UI
 	[self hideControlsAfterDelay];
@@ -416,8 +418,10 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         [self clearCurrentVideo]; // Clear current playing video
         
         // Bar state / appearance
-        [self restorePreviousNavBarAppearance:animated];
-        
+        if(self.parentViewController == nil) {
+            [self restorePreviousNavBarAppearance:animated];
+        }
+    
     }
     
     // Controls
