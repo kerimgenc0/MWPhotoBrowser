@@ -81,6 +81,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     _thumbPhotos = [[NSMutableArray alloc] init];
     _currentGridContentOffset = CGPointMake(0, CGFLOAT_MAX);
     _didSavePreviousStateOfNavBar = NO;
+    _applySelfAppearanceToNavBar = YES;
     self.automaticallyAdjustsScrollViewInsets = NO;
     
     // Listen for MWPhoto notifications
@@ -360,7 +361,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     if (!_viewIsActive && [self.navigationController.viewControllers objectAtIndex:0] != self) {
         [self storePreviousNavBarAppearance];
     }
-    if(self.parentViewController == nil) {
+    if(_applySelfAppearanceToNavBar) {
         [self setNavBarAppearance:animated];
     }
     
@@ -418,7 +419,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         [self clearCurrentVideo]; // Clear current playing video
         
         // Bar state / appearance
-        if(self.parentViewController == nil) {
+        if(_applySelfAppearanceToNavBar) {
             [self restorePreviousNavBarAppearance:animated];
         }
     
