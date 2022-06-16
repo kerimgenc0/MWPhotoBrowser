@@ -238,6 +238,8 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         [newBackButton setBackButtonBackgroundImage:nil forState:UIControlStateHighlighted barMetrics:UIBarMetricsLandscapePhone];
         [newBackButton setTitleTextAttributes:[NSDictionary dictionary] forState:UIControlStateNormal];
         [newBackButton setTitleTextAttributes:[NSDictionary dictionary] forState:UIControlStateHighlighted];
+	[newBackButton setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys: [UIColor colorWithRed:255.0/255.0 green:27.0/255.0 blue:79.0/255.0 alpha:1.0],  UITextAttributeTextColor,nil] forState:UIControlStateNormal];
+        [newBackButton setTintColor:[UIColor colorWithRed:255.0/255.0 green:27.0/255.0 blue:79.0/255.0 alpha:1.0]];
         _previousViewControllerBackButton = previousViewController.navigationItem.backBarButtonItem; // remember previous
         previousViewController.navigationItem.backBarButtonItem = newBackButton;
     }
